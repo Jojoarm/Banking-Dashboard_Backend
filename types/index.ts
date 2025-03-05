@@ -28,10 +28,8 @@ declare type LoginUser = {
 export type UserType = {
   _id: string;
   email: string;
-  userId: string;
   password: string;
-  dwollaCustomerUrl: string;
-  dwollaCustomerId: string;
+  accounts: [BankAccount];
   firstName: string;
   lastName: string;
   address1: string;
@@ -40,6 +38,7 @@ export type UserType = {
   postalCode: string;
   dateOfBirth: string;
   ssn: string;
+  imageUrl: string;
 };
 
 declare type NewUserParams = {
@@ -82,14 +81,23 @@ declare type Transaction = {
   receiverBankId: string;
 };
 
-declare type Bank = {
-  $id: string;
+export type Bank = {
+  _id: string;
   accountId: string;
   bankId: string;
   accessToken: string;
   fundingSourceUrl: string;
   userId: string;
   sharableId: string;
+};
+
+export type BankAccount = {
+  _id: string;
+  name: string;
+  accountNo: string;
+  balance: Number;
+  transactionHistory: object;
+  cards: object;
 };
 
 declare type AccountTypes =

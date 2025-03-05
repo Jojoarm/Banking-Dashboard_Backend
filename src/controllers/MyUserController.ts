@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import User from '../models/user';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { v2 as cloudinary } from 'cloudinary';
+import uploadImage from '../middlewares/uploadImage';
+import Bank from '../models/bank';
+import CheckingAccount from '../models/checkingAccount';
+import SavingsAccount from '../models/savingsAccount';
+import accountNumberGenerator from '../utils/accountNumberGenerator';
 
 const createUser = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -17,6 +23,7 @@ const createUser = async (req: Request, res: Response): Promise<any> => {
       dateOfBirth,
       ssn,
     } = req.body;
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -26,6 +33,9 @@ const createUser = async (req: Request, res: Response): Promise<any> => {
     //hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    //for image upload
+    const imageUrl = await uploadImage(req.file as Express.Multer.File);
 
     const newUser = new User({
       email,
@@ -39,6 +49,46 @@ const createUser = async (req: Request, res: Response): Promise<any> => {
       dateOfBirth,
       ssn,
     });
+
+    newUser.imageUrl = imageUrl;
+
+    // Generate checking account
+    let checkingAccountNumber = accountNumberGenerator();
+
+    const existingCheckingAccountNo = await CheckingAccount.findOne({
+      checkingAccountNumber,
+    });
+
+    if (existingCheckingAccountNo) {
+      checkingAccountNumber = accountNumberGenerator();
+    }
+
+    const newCheckingAccount = new CheckingAccount({
+      accountNo: checkingAccountNumber,
+      user: newUser._id,
+    });
+    await newCheckingAccount.save();
+
+    newUser.accounts.push(newCheckingAccount);
+
+    // Generate saving account
+    let savingsAccountNumber = accountNumberGenerator();
+    const existingSavingsAccountNo = await SavingsAccount.findOne({
+      savingsAccountNumber,
+    });
+
+    if (existingSavingsAccountNo) {
+      savingsAccountNumber = accountNumberGenerator();
+    }
+
+    const newSavingsAccount = new SavingsAccount({
+      accountNo: savingsAccountNumber,
+      user: newUser._id,
+    });
+    await newSavingsAccount.save();
+
+    newUser.accounts.push(newSavingsAccount);
+
     await newUser.save();
 
     //create token
